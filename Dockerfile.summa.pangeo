@@ -1,3 +1,4 @@
+# Start with the base docker image from pangeo
 FROM pangeo/notebook:92c4bfd
 
 USER root
@@ -18,23 +19,29 @@ RUN apt-get update && \
 WORKDIR /code
 ADD . /code
 
-# set environment variables for docker build
+# set environment variables used by the Makefile for the SUMMA build
 ENV F_MASTER /code
 ENV FC gfortran
 ENV FC_EXE gfortran
 ENV FC_ENV gfortran-6-docker
 
+# set examples directory
+ENV EXAMPLES_GIT_URL=https://github.com/bartnijssen/hydroshare-pangeo-notebooks
+
 # fetch tags and build summa
 RUN git fetch --tags && make -C build/ -f Makefile
 
-RUN mv /code/bin/summa.exe /usr/bin
+# move SUMMA code to a place that persists in the pangeo hub
+RUN mv /code /opt/summa
 
 USER $NB_UID
 
 # install pysumma and the hydroshare rest client
-RUN pip install git+https://github.com/uva-hydroinformatics/pysumma.git
+RUN pip install git+https://github.com/uva-hydroinformatics/pysumma.git@develop
 RUN pip install hs_restclient
 
 # change to home dir
 WORKDIR $HOME
+
+# No need to set the entry - we'll use the one from pangeo:notebook
 # CMD ["start.sh jupyter lab"]
